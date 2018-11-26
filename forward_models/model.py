@@ -43,8 +43,7 @@ class ForwardModel(tf.keras.Model):
 
         # define the initial state of the RNN as a trainable variable so it
         # will be optimized rather than remaining zeros
-        self.initial_state = tfe.Variable(
-            tf.zeros(shape=[64]), trainable=False)
+        self.initial_state = tfe.Variable(tf.zeros(shape=[64]), trainable=True)
 
         self.dense_embedding = tf.keras.layers.Dense(
             units=64, activation=tf.nn.relu)
