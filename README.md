@@ -1,13 +1,8 @@
 # Forward Models Tutorial
 
-## TODO
-
-- [ ] Document notebook
-- [ ] Document code
-
 ## Forward Models
 
-This repository implements a canonical forward model. In model-based reinforcement learning, the role of the forward model is to stand in for an environment. It is often fitted from data to predict the next state, given the current state and action:
+This repository implements a canonical forward model. In model-based reinforcement learning, the role of the forward model is to stand in for an environment so we can train agents against the model rather than sampling from the real environment which can be expensive and time consuming. The forward model is typically fitted from data to predict the next state, given the current state and action:
 
     f(s_t, a_t) => s_{t+1}
 
@@ -23,7 +18,7 @@ Always standardize the input features by subtracting the mean and dividing by th
 
 ## Angles
 
-Always encode angles and other wrapping values as the cosine and sine of radians. This helps the loss function by not overly penalizing e.g. 0 degrees versus 359 degrees.
+Always encode angles as the cosine and sine of radians. This helps the loss function by not overly penalizing e.g. 0 degrees versus 359 degrees. Note that the Pendulum-v0 environment does this automatically.
 
 ## State-Action History
 
@@ -31,7 +26,7 @@ Forward models of dynamical systems typically benefit from incorporating a time-
 
 ## Target Delta
 
-Always predict the delta from the current state, not the next state directly. This minimizes error by helping the model avoid incorrectly predicting the obvious.
+Always predict the delta from the current state, not the next state directly. This minimizes error by helping the model avoid incorrectly predicting the obvious. This also stationarizes the targets which is helpful for time series prediction.
 
     f(s_t, a_t) => s_{t+1} - s_t
 
