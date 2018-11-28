@@ -43,22 +43,27 @@ class ForwardModel(tf.keras.Model):
 
         # define the initial state of the RNN as a trainable variable so it
         # will be optimized rather than remaining zeros
-        self.initial_state = tfe.Variable(tf.zeros(shape=[64]), trainable=True)
+        self.initial_hidden_state = tfe.Variable(
+            tf.zeros(shape=[64]), trainable=True)
+        self.initial_cell_state = tfe.Variable(
+            tf.zeros(shape=[64]), trainable=True)
 
         self.dense_embedding = tf.keras.layers.Dense(
             units=64, activation=tf.nn.relu)
 
-        # Note: This does not use a GRUCell since it would not feed the hidden
+        # Note: This does not use a LSTMCell since it would not feed the hidden
         # state from one step to the next. This is important for training so
         # that the model learns how to interpret hidden states rather than
         # ignoring them after each step.
 
-        # using a GRU which is slightly faster and performs similarly
-        self.rnn = tf.keras.layers.GRU(
+        # using an LSTM but a GRU works about as well and faster
+        self.rnn = tf.keras.layers.LSTM(
             units=64, return_sequences=True, return_state=True)
         self.dense_logits = tf.keras.layers.Dense(
             units=output_units, activation=None)
-        self.state = None
+
+        self.hidden_state = None
+        self.cell_state = None
 
     def get_initial_state(self, batch_size):
         """
@@ -68,7 +73,11 @@ class ForwardModel(tf.keras.Model):
             batch_size: The size of the first dimension of the inputs
                         (excluding time steps).
         """
-        return [tf.tile(self.initial_state[None, ...], [batch_size, 1])]
+        hidden_state = tf.tile(self.initial_hidden_state[None, ...],
+                               [batch_size, 1])
+        cell_state = tf.tile(self.initial_cell_state[None, ...],
+                             [batch_size, 1])
+        return hidden_state, cell_state
 
     def call(self, states, actions, training=None, reset_state=None):
         """
@@ -84,10 +93,12 @@ class ForwardModel(tf.keras.Model):
         inputs = tf.concat([states, actions], axis=-1)
         hidden = self.dense_embedding(inputs)
 
-        if self.state is None or reset_state:
-            # compute an initial state for the RNN
-            self.state = self.get_initial_state(inputs.shape[0])
+        # compute an initial state for the RNN
+        if self.hidden_state is None or self.cell_state is None or reset_state:
+            self.hidden_state, self.cell_state = self.get_initial_state(
+                inputs.shape[0])
 
-        hidden, self.state = self.rnn(hidden, initial_state=self.state)
+        hidden, self.hidden_state, self.cell_state = self.rnn(
+            hidden, initial_state=[self.hidden_state, self.cell_state])
         logits = self.dense_logits(hidden)
         return logits
